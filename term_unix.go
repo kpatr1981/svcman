@@ -1,0 +1,7 @@
+//go:build !windows
+
+// svcman — Author: Konstantinos Patronas <kpatronas@gmail.com>
+
+package main
+
+func enableVT() bool { return true }

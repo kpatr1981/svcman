@@ -74,9 +74,10 @@ or `runuser` when root; otherwise checked by mode bits and marked approximate),
 `#!` interpreter, CRLF, `noexec` mount. It also runs `systemd-analyze verify` per
 unit file when available. Output is line-based `unit<TAB>kind<TAB>path<TAB>facts`.
 
-Interactive mode runs the probe in the background in batches after the list is
-shown, filling the CHECK column; the details screen re-probes the selected unit.
-Audit mode probes every enabled, failed or timer-triggered unit (all units with `-v`).
+Interactive mode probes, before the screen opens ("Checking N units…"), the same
+units audit checks (enabled, failed, timer-linked); other units are probed when
+their details screen opens, and the CHECK column shows `·` until then. `R`
+re-probes everything that was probed.
 
 ### Privileges
 
@@ -84,8 +85,12 @@ Audit mode probes every enabled, failed or timer-triggered unit (all units with 
   `sudo -n` when the login user cannot read it
 * write (actions, drop-ins, daemon-reload, fixes): run directly when logged in as
   root; `sudo -n` when passwordless sudo works (detected once at connect);
-  otherwise `Runner.Interactive("sudo sh -c …")` so the user types the sudo
-  password in the terminal (screen suspended/resumed as in cronman)
+  otherwise svcman asks for the sudo password once per session (hidden, read
+  locally; the screen is suspended while it asks), checks it with
+  `sudo -k -S -p '' true`, and runs root commands as
+  `sudo -k -S -p '' sh -c '<script>'` with the password on stdin, so their
+  output can be shown. An empty password means "no root": actions fail with a
+  message, reads continue unprivileged.
 * audit: as cronman — root, `sudo -n`, or ask the sudo password once and use
   `sudo -k -S -p ''` (empty password = continue unprivileged with a warning)
 
