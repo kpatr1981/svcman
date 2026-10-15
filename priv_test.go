@@ -102,3 +102,23 @@ func TestRunRootLargeScriptViaStdin(t *testing.T) {
 		t.Errorf("script not on stdin: cmd %d bytes", len(f.calls[0].Cmd))
 	}
 }
+
+// Login shells on the host can print locale warnings on every command; they
+// must not end up in svcman's error messages.
+func TestOneLineDropsLoginNoise(t *testing.T) {
+	in := "bash: warning: setlocale: LC_ALL: cannot change locale (en_US.UTF-8)\n" +
+		"/bin/sh: warning: setlocale: LC_ALL: cannot change locale (en_US.UTF-8)\nJob for a.service failed.\n"
+	if got := oneLine(in); got != "Job for a.service failed." {
+		t.Errorf("%q", got)
+	}
+}
+
+func TestLoadHostErrorDropsLoginNoise(t *testing.T) {
+	f := &fakeRunner{reply: func(cmd, in string) (string, string, error) {
+		return "", "bash: warning: setlocale: LC_ALL: cannot change locale (en_US.UTF-8)\nPermission denied\n", errors.New("exit 1")
+	}}
+	_, err := loadHost(f)
+	if err == nil || strings.Contains(err.Error(), "setlocale") || !strings.Contains(err.Error(), "Permission denied") {
+		t.Errorf("%v", err)
+	}
+}

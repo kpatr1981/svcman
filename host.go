@@ -58,7 +58,7 @@ echo @@SHOW
 func loadHost(r Runner) (*Host, error) {
 	out, errOut, err := RunScript(r, "", loadScript)
 	if err != nil && !strings.Contains(out, "@@INFO") && !strings.Contains(out, "@@NOSYSTEMD") {
-		if m := strings.TrimSpace(errOut); m != "" {
+		if m := strings.TrimSpace(cleanStderr(errOut)); m != "" {
 			return nil, fmt.Errorf("%s: %s", r.Label(), m)
 		}
 		return nil, err
