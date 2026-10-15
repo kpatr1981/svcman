@@ -2,6 +2,8 @@
 # End-to-end: svcman --audit against the provisioned VMs must report every planted fault.
 set -u
 cd "$(dirname "$0")/../.."
+# Re-plant the faults: manual runs (fixes, saves, daemon-reload) change them.
+[ -n "${NOPROVISION:-}" ] || sh test/lima/create.sh ${VMS:+$(echo $VMS | sed s/svc-//g)} >/dev/null 2>&1 || { echo "provisioning failed"; exit 1; }
 fail=0
 for vm in ${VMS:-svc-debian svc-rocky}; do
   user=$(limactl shell "$vm" id -un)
