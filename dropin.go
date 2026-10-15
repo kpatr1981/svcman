@@ -161,7 +161,7 @@ cat > "$exp" ` + es + "\n" + eb + `cat > "$new" ` + ns + "\n" + nb + `if [ -e "$
 elif [ "$existed" = 1 ]; then echo CHANGED; exit 3; fi
 saved=
 if [ -e "$f" ]; then
-  saved="$bk/` + d.Unit + `-` + stamp + `.conf"
+  saved="$bk"/` + shq(d.Unit+"-"+stamp+".conf") + `
   mkdir -p "$bk" && cp -p "$f" "$saved" || { echo BACKUPFAIL; exit 4; }
   chown -R ` + shq(owner) + ` "$bk" 2>/dev/null || true
   echo "BACKUP $saved"

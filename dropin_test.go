@@ -191,3 +191,27 @@ func TestMarkSaved(t *testing.T) {
 		t.Errorf("saving an empty drop-in deletes the file: %+v", d)
 	}
 }
+
+// The unit name is quoted wherever it reaches the shell, backup path included.
+func TestSaveScriptQuotesUnitInBackupPath(t *testing.T) {
+	root := t.TempDir()
+	dir := filepath.Join(root, "units")
+	unit := `a$HOME"x.service`
+	os.MkdirAll(filepath.Join(dir, unit+".d"), 0o755)
+	old := "[Service]\nRestart=no\n"
+	os.WriteFile(filepath.Join(dir, unit+".d", "svcman.conf"), []byte(old), 0o644)
+	bin := filepath.Join(root, "bin")
+	os.MkdirAll(bin, 0o755)
+	os.WriteFile(filepath.Join(bin, "systemctl"), []byte("#!/bin/sh\nexit 0\n"), 0o755)
+	d := newDropIn(unit, old, true)
+	d.Entries = parseDropIn("[Service]\nRestart=always\n")
+	cmd := exec.Command("sh", "-c", saveScript(dir, d, d.Render(), filepath.Join(root, "bk"), os.Getenv("USER"), "s"))
+	cmd.Env = append(os.Environ(), "PATH="+bin+":"+os.Getenv("PATH"))
+	out, err := cmd.CombinedOutput()
+	if err != nil || !strings.Contains(string(out), "OK") {
+		t.Fatalf("%v %s", err, out)
+	}
+	if _, err := os.Stat(filepath.Join(root, "bk", unit+"-s.conf")); err != nil {
+		t.Errorf("backup not at the literal name: %v\n%s", err, out)
+	}
+}
