@@ -172,3 +172,22 @@ func TestSaveDropInMapsResults(t *testing.T) {
 		}
 	}
 }
+
+// After a save the written content is the new baseline: later edits in the
+// same session are changes against it, and the guard expects it on disk.
+func TestMarkSaved(t *testing.T) {
+	d := newDropIn("a.service", "", false)
+	d.Entries = []Entry{{"Service", "Restart", "always"}}
+	d.markSaved()
+	if d.Dirty() || !d.Exists || d.Orig != d.Render() {
+		t.Fatalf("not clean after save: %+v", d)
+	}
+	d.Entries = nil
+	if !d.Dirty() {
+		t.Error("deleting the saved entry must be a change")
+	}
+	d.markSaved()
+	if d.Exists || d.Orig != "" {
+		t.Errorf("saving an empty drop-in deletes the file: %+v", d)
+	}
+}

@@ -553,6 +553,3 @@ func runInteractive(r Runner) error {
 	a.loop()
 	return nil
 }
-
-func (a *app) editDropIn(u *Unit) { a.status = "editor: not built yet" }
-func (a *app) save() bool         { a.status = "save: not built yet"; return false }

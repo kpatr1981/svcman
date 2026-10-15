@@ -98,6 +98,13 @@ func (d *DropIn) Render() string {
 
 func (d *DropIn) Dirty() bool { return d.Render() != d.base }
 
+// markSaved makes the current entries the baseline after a successful save.
+func (d *DropIn) markSaved() {
+	d.Orig = d.Render()
+	d.Exists = d.Orig != ""
+	d.base = d.Orig
+}
+
 // knownKey: unit-file keys whose systemctl show property has another name
 // (RestartSec→RestartUSec, EnvironmentFile→EnvironmentFiles) count as known.
 func knownKey(props map[string]bool, key string) bool {
