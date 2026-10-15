@@ -4,11 +4,9 @@ package main
 
 import (
 	"fmt"
+	"strings"
 	"time"
 )
-
-// UnitFacts is replaced in Task 7 by the probe's file and user facts.
-type UnitFacts struct{}
 
 // Check returns the problems found from u's properties and, when f is not
 // nil, from the probe's facts about its files and users.
@@ -66,5 +64,132 @@ func failFix(u *Unit) Fix {
 	return Fix{"reset the failure and restart", "systemctl reset-failed " + q + " && systemctl restart " + q}
 }
 
-// checkFacts is filled in by Task 7.
-func checkFacts(u *Unit, f *UnitFacts) []Issue { return nil }
+// checkFacts turns probe facts into issues.
+func checkFacts(u *Unit, uf *UnitFacts) []Issue {
+	var is []Issue
+	add := func(s Severity, text string, fixes ...*Fix) {
+		var fs []Fix
+		for _, f := range fixes {
+			if f != nil {
+				fs = append(fs, *f)
+			}
+		}
+		is = append(is, Issue{s, text, fs})
+	}
+	denied := func(a string) bool { return a == "denied" || a == "approx-denied" }
+	approx := func(a string) string {
+		if strings.HasPrefix(a, "approx") {
+			return " (judged from permission bits)"
+		}
+		return ""
+	}
+	for _, f := range uf.Facts {
+		r := f.Req
+		missing := func() {
+			what := "does not exist"
+			if f.State == "broken-link" {
+				what = "is a broken symlink"
+			}
+			sev := SevFail
+			if r.Optional {
+				sev = SevWarn
+			}
+			add(sev, fmt.Sprintf("%s %s %s", r.Role, r.Path, what))
+		}
+		switch r.Kind {
+		case 'x':
+			if !f.Exists {
+				missing()
+				continue
+			}
+			if f.Type != "file" {
+				add(SevFail, fmt.Sprintf("%s %s is not a regular file", r.Role, r.Path))
+				continue
+			}
+			if denied(f.Access) {
+				add(SevFail, fmt.Sprintf("%s is not executable by %s%s", r.Path, r.User, approx(f.Access)), chmodFix(f, "x"))
+			}
+			if f.Interp != "" && !f.InterpOK {
+				add(SevFail, fmt.Sprintf("%s: interpreter %s does not exist", r.Path, f.Interp))
+			}
+			if f.EnvCmd != "" && !f.EnvCmdOK {
+				add(SevFail, fmt.Sprintf("%s: env cannot find %s in systemd's PATH", r.Path, f.EnvCmd))
+			}
+			if f.Interp != "" && denied(f.AccessR) {
+				add(SevFail, fmt.Sprintf("%s is a script but not readable by %s%s", r.Path, r.User, approx(f.AccessR)), chmodFix(f, "r"))
+			}
+			if f.CRLF {
+				add(SevFail, r.Path+" has Windows (CRLF) line endings", &Fix{"strip the CR characters", `sed -i 's/\r$//' ` + shq(r.Path)})
+			}
+			if f.NoExec {
+				add(SevFail, r.Path+" is on a filesystem mounted noexec")
+			}
+		case 'd':
+			if !f.Exists {
+				if !r.Optional {
+					missing()
+				}
+				continue
+			}
+			if f.Type != "dir" {
+				add(SevFail, fmt.Sprintf("WorkingDirectory %s is not a directory", r.Path))
+			} else if denied(f.Access) {
+				add(SevFail, fmt.Sprintf("%s cannot enter WorkingDirectory %s%s", r.User, r.Path, approx(f.Access)), chmodFix(f, "x"))
+			}
+		case 'r':
+			if !f.Exists {
+				if !r.Optional {
+					missing()
+				}
+				continue
+			}
+			if denied(f.Access) {
+				add(SevFail, fmt.Sprintf("%s %s is not readable by %s%s", r.Role, r.Path, r.User, approx(f.Access)), chmodFix(f, "r"))
+			}
+		case 'f':
+			if !f.Exists {
+				continue
+			}
+			if f.Mode&0o022 != 0 {
+				add(SevFail, fmt.Sprintf("%s %s is writable by group or others (%03o)", r.Role, r.Path, f.Mode),
+					&Fix{"remove group/other write", "chmod go-w " + shq(r.Path)})
+			}
+			if f.Owner != "root" {
+				add(SevFail, fmt.Sprintf("%s %s is owned by %s, not root", r.Role, r.Path, f.Owner),
+					&Fix{"give it to root", "chown root:root " + shq(r.Path)})
+			}
+		case 'u', 'g':
+			if !f.Exists {
+				what := "user"
+				if r.Kind == 'g' {
+					what = "group"
+				}
+				add(SevFail, fmt.Sprintf("%s %s does not exist", what, r.Path))
+			}
+		case 's':
+			if f.Exists {
+				add(SevInfo, "overrides the vendor unit of the same name in /usr/lib (left by systemctl edit --full?)")
+			}
+		}
+	}
+	for _, v := range uf.Verify {
+		add(SevWarn, "systemd-analyze: "+v)
+	}
+	return is
+}
+
+// chmodFix adds the missing permission bit for the class the unit's user
+// falls in (owner, else others; group membership is not probed). It returns
+// nil when that bit is already set, because then something else (a parent
+// directory, ACL, mount) blocks access and chmod on the file would not help.
+func chmodFix(f Fact, bit string) *Fix {
+	mask := map[string]int{"r": 4, "x": 1}[bit]
+	who, shift := "o", 0
+	if f.Req.User == "root" || f.Req.User == f.Owner {
+		who, shift = "u", 6
+	}
+	if f.Mode&(mask<<shift) != 0 {
+		return nil
+	}
+	return &Fix{"chmod " + who + "+" + bit, "chmod " + who + "+" + bit + " " + shq(f.Req.Path)}
+}
