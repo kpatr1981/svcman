@@ -94,3 +94,20 @@ func TestRowLineColumnsAlign(t *testing.T) {
 		t.Errorf("misaligned:\n%q\n%q", l1, l2)
 	}
 }
+
+// A search for a service that sits under a timer selects the service row,
+// so e/s/R act on what was searched for.
+func TestSearchSelectsMatchingRow(t *testing.T) {
+	a := &app{h: testHost(), search: "job.service"}
+	a.rebuild()
+	a.selectSearch()
+	if u := a.current(); u == nil || u.Name != "job.service" {
+		t.Errorf("selected %v", u)
+	}
+	a.search = "job"
+	a.rebuild()
+	a.selectSearch()
+	if u := a.current(); u.Name != "job.timer" {
+		t.Errorf("partial match should pick the first matching row, got %s", u.Name)
+	}
+}

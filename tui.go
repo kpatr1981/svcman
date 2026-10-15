@@ -447,6 +447,18 @@ func (a *app) searchPrompt() {
 	if ok {
 		a.search = strings.TrimSpace(v)
 		a.rebuild()
+		a.selectSearch()
+	}
+}
+
+// selectSearch moves to the first row whose own name matches the search (a
+// timer is listed because its service matches; the service is what was meant).
+func (a *app) selectSearch() {
+	for i, r := range a.rows {
+		if a.search != "" && strings.Contains(r.u.Name, a.search) {
+			a.sel = i
+			return
+		}
 	}
 }
 
