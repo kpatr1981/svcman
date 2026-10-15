@@ -155,9 +155,29 @@ avoid a password prompt per operation.
 
 ## Install
 
-Download a prebuilt binary from the
-[Releases page](https://github.com/kpatr1981/svcman/releases/latest).
-They are static, single-file executables with no dependencies.
+**Linux and macOS** (installs to `~/.local/bin`, no sudo; checks the download against
+`SHA256SUMS`):
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/kpatr1981/svcman/main/install.sh | sh
+```
+
+Another directory: `curl -fsSL …/install.sh | sh -s -- /usr/local/bin` (uses sudo if the
+directory is not writable). Remove it with `sh install.sh --uninstall`.
+
+**Windows** (PowerShell; installs to `%LOCALAPPDATA%\Programs\svcman` and adds it to your
+user PATH, no admin):
+
+```powershell
+irm https://raw.githubusercontent.com/kpatr1981/svcman/main/install.ps1 | iex
+```
+
+Options when run as a file: `.\install.ps1 -Dir C:\tools`, `-Version v0.1.0`, `-Uninstall`.
+svcman needs the Windows OpenSSH client (Settings › System › Optional features).
+
+**By hand:** download a binary from the
+[Releases page](https://github.com/kpatr1981/svcman/releases/latest). They are static,
+single-file executables with no dependencies.
 
 | OS | CPU | file |
 |---|---|---|
@@ -168,16 +188,6 @@ They are static, single-file executables with no dependencies.
 | Windows | x86-64 | `svcman-windows-amd64.exe` |
 | Windows | ARM64 | `svcman-windows-arm64.exe` |
 
-```sh
-curl -LO https://github.com/kpatr1981/svcman/releases/latest/download/svcman-linux-amd64
-chmod +x svcman-linux-amd64
-sudo mv svcman-linux-amd64 /usr/local/bin/svcman
-svcman --version
-```
-
-Verify the download against `SHA256SUMS` from the same release:
-`shasum -a 256 -c SHA256SUMS --ignore-missing`.
-
 ## Build from source
 
 You need [Go](https://go.dev/dl/) 1.26 or newer. There is no cgo.
@@ -186,7 +196,7 @@ You need [Go](https://go.dev/dl/) 1.26 or newer. There is no cgo.
 git clone https://github.com/kpatr1981/svcman.git
 cd svcman
 make build                     # ./svcman
-sh install.sh                  # build and install to ~/.local/bin (or: make install)
+sh install.sh                  # in a checkout with Go: build and install to ~/.local/bin (or: make install)
 sh install.sh /usr/local/bin   # another directory (sudo if it is not writable)
 sh install.sh --uninstall      # remove it again
 make test                      # go vet + unit tests
