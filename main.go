@@ -123,6 +123,3 @@ func fatal(msg string) {
 	fmt.Fprintln(os.Stderr, red("svcman: ")+msg)
 	os.Exit(2)
 }
-
-// runInteractive is replaced in Task 10.
-func runInteractive(r Runner) error { return fmt.Errorf("interactive mode not built yet") }
