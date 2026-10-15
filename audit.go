@@ -128,13 +128,10 @@ func runAudit(r Runner, o auditOpts) (int, error) {
 	for _, i := range hostIssues(h) {
 		printIssue("", i)
 	}
-	failing := 0
+	failing := failingCount(h, facts)
 	for _, u := range units {
 		is := Check(h, u, facts[u.Name])
 		w := worst(is)
-		if w == SevFail {
-			failing++
-		}
 		if w == SevOK && !o.verbose {
 			continue
 		}
@@ -167,6 +164,18 @@ func runAudit(r Runner, o auditOpts) (int, error) {
 		return 1, nil
 	}
 	return 0, nil
+}
+
+// failingCount is the verdict: failing units among those a default audit
+// checks, so -v (which lists every unit) does not change the exit status.
+func failingCount(h *Host, facts map[string]*UnitFacts) int {
+	n := 0
+	for _, u := range auditUnits(h, false) {
+		if worst(Check(h, u, facts[u.Name])) == SevFail {
+			n++
+		}
+	}
+	return n
 }
 
 func applyFixes(h *Host, fixes []Fix) {

@@ -29,7 +29,8 @@ type Host struct {
 	Home        string
 	Priv        Priv
 	SysState    string
-	Now         time.Time
+	Now         time.Time // host clock when loaded
+	loadedAt    time.Time // local clock when loaded
 	Units       []*Unit
 	pw          string
 	journalRoot bool
@@ -86,10 +87,19 @@ func parseLoad(out string) (*Host, error) {
 	h := &Host{Login: f[1], Home: f[2], SysState: f[4]}
 	if n, err := strconv.ParseInt(f[0], 10, 64); err == nil {
 		h.Now = time.Unix(n, 0).UTC()
+		h.loadedAt = time.Now()
 	}
 	h.Priv = map[string]Priv{"root": PrivRoot, "nopass": PrivNoPass, "pass": PrivPassword}[f[3]]
 	h.Units = parseShow(show)
 	return h, nil
+}
+
+// clock is the host's time now: its clock at load plus the time since.
+func (h *Host) clock() time.Time {
+	if h.loadedAt.IsZero() {
+		return h.Now
+	}
+	return h.Now.Add(time.Since(h.loadedAt))
 }
 
 // Unit returns the named unit, or nil.

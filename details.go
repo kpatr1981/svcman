@@ -28,7 +28,7 @@ func (a *app) detailLines(u *Unit, w int) ([]string, []Fix) {
 		state = red("failed (" + u.Result + ")")
 	}
 	if !u.StateChange.IsZero() {
-		state += dim("  since " + ago(a.h.Now, u.StateChange) + " ago")
+		state += dim("  since " + ago(a.h.clock(), u.StateChange) + " ago")
 	}
 	kv("State", state)
 	kv("Enabled", u.FileState)

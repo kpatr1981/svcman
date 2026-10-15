@@ -49,7 +49,7 @@ func Check(h *Host, u *Unit, f *UnitFacts) []Issue {
 				add(SevWarn, fmt.Sprintf("last run of %s failed (%s)", t, tu.Result))
 			}
 		}
-		if u.Active == "active" && !u.NextElapse.IsZero() && h.Now.Sub(u.NextElapse) > 5*time.Minute {
+		if u.Active == "active" && !u.NextElapse.IsZero() && h.clock().Sub(u.NextElapse) > 5*time.Minute {
 			add(SevWarn, "overdue: it should have triggered at "+u.NextElapse.Format("2006-01-02 15:04")+" UTC",
 				Fix{"restart the timer", "systemctl restart " + q})
 		}

@@ -20,6 +20,8 @@ func (h *Host) canRoot() bool {
 
 // runRoot runs a sh script as root: directly, with sudo -n, or with the sudo
 // password typed earlier on stdin. sudo never prompts on the remote side.
+// The script always travels on stdin (sudo -S reads only the password line),
+// because a single argument is limited to 128 KiB on Linux.
 func (h *Host) runRoot(script string) (string, string, error) {
 	switch {
 	case h.Priv == PrivRoot:
@@ -27,7 +29,7 @@ func (h *Host) runRoot(script string) (string, string, error) {
 	case h.Priv == PrivNoPass:
 		return RunScript(h.r, "sudo -n", script)
 	case h.Priv == PrivPassword && h.pw != "":
-		return h.r.Exec("sudo -k -S -p '' sh -c "+shq(script), h.pw+"\n")
+		return h.r.Exec("sudo -k -S -p '' /bin/sh -s", h.pw+"\n"+script)
 	case h.Priv == PrivPassword:
 		return "", "", errNeedPassword
 	}

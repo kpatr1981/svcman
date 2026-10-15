@@ -178,7 +178,7 @@ func ago(now, t time.Time) string {
 }
 
 func (a *app) sinceCell(r row) string {
-	u, now := r.u, a.h.Now
+	u, now := r.u, a.h.clock()
 	if u.Kind == "timer" {
 		if u.NextElapse.IsZero() {
 			return "-"

@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestParseLoad(t *testing.T) {
@@ -76,5 +77,17 @@ func TestRefreshReplacesUnits(t *testing.T) {
 	}
 	if !strings.Contains(f.calls[0].Stdin, "svct-loop.service") || !strings.Contains(f.calls[0].Stdin, "TZ=UTC") {
 		t.Errorf("refresh script: %q", f.calls[0].Stdin)
+	}
+}
+
+// Ages are measured against the host's clock now, not when it was loaded.
+func TestHostClockAdvances(t *testing.T) {
+	h, _ := parseLoad("@@INFO\n1760490000\nx\n/x\nroot\nrunning\n@@SHOW\n")
+	h.loadedAt = h.loadedAt.Add(-time.Hour)
+	if got := h.clock().Sub(h.Now); got < time.Hour || got > time.Hour+time.Minute {
+		t.Errorf("clock advanced %v, want ~1h", got)
+	}
+	if (&Host{Now: h.Now}).clock() != h.Now {
+		t.Error("a host built in a test (no loadedAt) uses Now")
 	}
 }

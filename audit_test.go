@@ -84,3 +84,16 @@ func TestAskPasswordWithoutTerminalDoesNotBlock(t *testing.T) {
 		t.Errorf("asked anyway: %+v", f.calls)
 	}
 }
+
+// -v lists more units but must not change the verdict (exit status).
+func TestFailingCountIgnoresVerboseOnlyUnits(t *testing.T) {
+	h := &Host{Units: []*Unit{
+		{Name: "ref.service", Kind: "service", Load: "not-found"},
+		{Name: "vendor.service", Kind: "service", Load: "loaded", FileState: "static", Active: "inactive", Exec: []ExecCmd{{Key: "ExecStart", Path: "/sbin/quotaon"}}},
+		{Name: "app.service", Kind: "service", Load: "loaded", FileState: "enabled", Active: "failed", Result: "exit-code"},
+	}}
+	facts := map[string]*UnitFacts{"vendor.service": {Facts: []Fact{{Req: probeReq{Kind: 'x', Role: "ExecStart", Path: "/sbin/quotaon", User: "root"}, State: "missing"}}}}
+	if n := failingCount(h, facts); n != 1 {
+		t.Errorf("got %d failing, want 1", n)
+	}
+}

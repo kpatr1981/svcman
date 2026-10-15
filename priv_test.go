@@ -18,7 +18,7 @@ func TestRunRootModes(t *testing.T) {
 	}{
 		{PrivRoot, "", "/bin/sh -s", "echo hi", nil},
 		{PrivNoPass, "", "sudo -n /bin/sh -s", "echo hi", nil},
-		{PrivPassword, "s3cret", "sudo -k -S -p '' sh -c 'echo hi'", "s3cret\n", nil},
+		{PrivPassword, "s3cret", "sudo -k -S -p '' /bin/sh -s", "s3cret\necho hi", nil},
 	}
 	for _, c := range cases {
 		f := &fakeRunner{}
@@ -88,5 +88,17 @@ func TestActionCommand(t *testing.T) {
 	h.action("daemon-reload")
 	if f.calls[1].Stdin != envC+" systemctl daemon-reload 2>&1" {
 		t.Errorf("daemon-reload script %q", f.calls[1].Stdin)
+	}
+}
+
+// Linux limits one argument to 128 KiB: a large probe script must travel on
+// stdin (after the password line, which is all sudo -S reads), never in argv.
+func TestRunRootLargeScriptViaStdin(t *testing.T) {
+	f := &fakeRunner{}
+	h := &Host{r: f, Priv: PrivPassword, pw: "pw"}
+	big := strings.Repeat("x", 200000)
+	h.runRoot(big)
+	if len(f.calls[0].Cmd) > 1000 || !strings.HasSuffix(f.calls[0].Stdin, big) {
+		t.Errorf("script not on stdin: cmd %d bytes", len(f.calls[0].Cmd))
 	}
 }
