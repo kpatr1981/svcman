@@ -140,6 +140,9 @@ done `
 func probeScript(reqs []probeReq) string {
 	var data strings.Builder
 	for i, r := range reqs {
+		if strings.ContainsAny(r.Path+r.User, "\t\n") {
+			continue // cannot travel in a tab-separated line; left unchecked
+		}
 		fmt.Fprintf(&data, "%d\t%c\t%s\t%s\n", i, r.Kind, r.Path, r.User)
 	}
 	start, body := heredoc(data.String())

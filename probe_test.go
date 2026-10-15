@@ -104,3 +104,22 @@ func TestProbeScriptResolvesBareCommand(t *testing.T) {
 		t.Errorf("%+v\n%s", f, out)
 	}
 }
+
+// A path with a tab or newline cannot travel in the tab-separated request
+// lines; it is left unchecked rather than misread, and the others still line up.
+func TestProbeScriptSkipsUnsafePaths(t *testing.T) {
+	me := os.Getenv("USER")
+	reqs := []probeReq{
+		{Unit: "a", Role: "ExecStart", Kind: 'x', Path: "/tmp/a\tb", User: me},
+		{Unit: "a", Role: "ExecStart", Kind: 'x', Path: "/tmp/c\n2\tx\t/etc", User: me},
+		{Unit: "a", Role: "ExecStart", Kind: 'x', Path: "/bin/sh", User: me},
+	}
+	out, err := exec.Command("sh", "-c", probeScript(reqs)).CombinedOutput()
+	if err != nil {
+		t.Fatalf("%v\n%s", err, out)
+	}
+	f := parseProbe(string(out), reqs)["a"].Facts
+	if len(f) != 1 || f[0].Req.Path != "/bin/sh" || !f[0].Exists {
+		t.Errorf("%+v\n%s", f, out)
+	}
+}
