@@ -88,3 +88,19 @@ func TestParseProbeVerify(t *testing.T) {
 		t.Errorf("%+v", m["a"])
 	}
 }
+
+func TestProbeScriptResolvesBareCommand(t *testing.T) {
+	me := os.Getenv("USER")
+	reqs := []probeReq{
+		{Unit: "a", Role: "ExecStart", Kind: 'x', Path: "sh", User: me},
+		{Unit: "a", Role: "ExecStart", Kind: 'x', Path: "nosuchcmd_svcman", User: me},
+	}
+	out, err := exec.Command("sh", "-c", probeScript(reqs)).CombinedOutput()
+	if err != nil {
+		t.Fatalf("%v\n%s", err, out)
+	}
+	f := parseProbe(string(out), reqs)["a"].Facts
+	if !f[0].Exists || f[0].Access != "ok" || f[1].Exists {
+		t.Errorf("%+v\n%s", f, out)
+	}
+}

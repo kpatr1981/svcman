@@ -2,7 +2,7 @@
 # Capture real systemctl show output into testdata/ for parser tests.
 set -e
 cd "$(dirname "$0")/../.."
-PROPS=Id,Description,Type,LoadState,ActiveState,SubState,Result,UnitFileState,FragmentPath,DropInPaths,ExecStartPre,ExecStart,ExecStartPost,ExecReload,ExecStop,ExecStopPost,User,Group,DynamicUser,WorkingDirectory,EnvironmentFiles,NRestarts,Restart,Triggers,TriggeredBy,Wants,Requires,StateChangeTimestamp,NextElapseUSecRealtime,LastTriggerUSec,NeedDaemonReload
+PROPS=Id,Description,Type,LoadState,ActiveState,SubState,Result,UnitFileState,FragmentPath,DropInPaths,ExecStartPre,ExecStart,ExecStartPost,ExecReload,ExecStop,ExecStopPost,User,Group,DynamicUser,WorkingDirectory,EnvironmentFiles,NRestarts,Restart,Triggers,TriggeredBy,Wants,Requires,StateChangeTimestamp,InactiveExitTimestamp,NextElapseUSecRealtime,LastTriggerUSec,NeedDaemonReload
 mkdir -p testdata
 for fam in debian rocky; do
   limactl shell svc-$fam sh -c "LC_ALL=C TZ=UTC systemctl show --no-pager -p $PROPS \

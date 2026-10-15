@@ -105,6 +105,10 @@ while IFS='	' read -r idx kind path user; do
      systemd-analyze verify "$path" 2>&1 | grep -v '^$' | head -5 | while IFS= read -r l; do printf 'V\t%s\t%s\n' "$idx" "$l"; done
      continue ;;
   esac
+  if [ "$kind" = x ]; then # bare command: systemd searches its own path
+    case $path in /*) ;; *) r=$( (PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin; command -v "$path") 2>/dev/null)
+      case $r in /*) path=$r ;; esac ;; esac
+  fi
   if [ ! -e "$path" ]; then
     if [ -L "$path" ]; then s=broken-link; else s=missing; fi
     printf 'F\t%s\texists=0 state=%s\n' "$idx" "$s"; continue

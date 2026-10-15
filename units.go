@@ -14,7 +14,7 @@ import (
 const showProps = "Id,Description,Type,LoadState,ActiveState,SubState,Result,UnitFileState," +
 	"FragmentPath,DropInPaths,ExecStartPre,ExecStart,ExecStartPost,ExecReload,ExecStop,ExecStopPost," +
 	"User,Group,DynamicUser,WorkingDirectory,EnvironmentFiles,NRestarts,Restart," +
-	"Triggers,TriggeredBy,Wants,Requires,StateChangeTimestamp,NextElapseUSecRealtime,LastTriggerUSec,NeedDaemonReload"
+	"Triggers,TriggeredBy,Wants,Requires,StateChangeTimestamp,InactiveExitTimestamp,NextElapseUSecRealtime,LastTriggerUSec,NeedDaemonReload"
 
 var execKeys = []string{"ExecStartPre", "ExecStart", "ExecStartPost", "ExecReload", "ExecStop", "ExecStopPost"}
 
@@ -48,6 +48,7 @@ type Unit struct {
 	Triggers, TriggeredBy                []string
 	Wants, Requires                      []string
 	StateChange, NextElapse, LastTrigger time.Time
+	LastStart                            time.Time // last time it left the inactive state
 	NeedReload                           bool
 }
 
@@ -103,6 +104,7 @@ func unitFromProps(p map[string][]string) *Unit {
 		StateChange: parseTime(get("StateChangeTimestamp")),
 		NextElapse:  parseTime(get("NextElapseUSecRealtime")),
 		LastTrigger: parseTime(get("LastTriggerUSec")),
+		LastStart:   parseTime(get("InactiveExitTimestamp")),
 		NeedReload:  get("NeedDaemonReload") == "yes",
 	}
 	u.Kind = strings.TrimPrefix(path.Ext(u.Name), ".")

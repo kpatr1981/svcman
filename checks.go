@@ -29,8 +29,10 @@ func Check(h *Host, u *Unit, f *UnitFacts) []Issue {
 	if u.NRestarts >= 5 {
 		add(SevWarn, fmt.Sprintf("restarted %d times since it was started (restart loop?)", u.NRestarts))
 	}
+	// Only a unit that ran and was stopped: one that never started (start
+	// condition not met, its target never reached) is normal.
 	if u.Kind == "service" && u.FileState == "enabled" && u.Active == "inactive" &&
-		len(u.TriggeredBy) == 0 && u.Type != "oneshot" {
+		len(u.TriggeredBy) == 0 && u.Type != "oneshot" && !u.LastStart.IsZero() {
 		add(SevWarn, "enabled but not running", Fix{"start it", "systemctl start " + q})
 	}
 	if u.NeedReload {
@@ -76,7 +78,15 @@ func checkFacts(u *Unit, uf *UnitFacts) []Issue {
 		}
 		is = append(is, Issue{s, text, fs})
 	}
-	denied := func(a string) bool { return a == "denied" || a == "approx-denied" }
+	// A user that does not exist is reported once; its access results are noise.
+	badUser := map[string]bool{}
+	for _, f := range uf.Facts {
+		if f.Req.Kind == 'u' && !f.Exists {
+			badUser[f.Req.Path] = true
+		}
+	}
+	var user string
+	denied := func(a string) bool { return !badUser[user] && (a == "denied" || a == "approx-denied") }
 	approx := func(a string) string {
 		if strings.HasPrefix(a, "approx") {
 			return " (judged from permission bits)"
@@ -85,10 +95,13 @@ func checkFacts(u *Unit, uf *UnitFacts) []Issue {
 	}
 	for _, f := range uf.Facts {
 		r := f.Req
+		user = r.User
 		missing := func() {
 			what := "does not exist"
 			if f.State == "broken-link" {
 				what = "is a broken symlink"
+			} else if r.Kind == 'x' && !strings.HasPrefix(r.Path, "/") {
+				what = "is not in systemd's search path"
 			}
 			sev := SevFail
 			if r.Optional {
@@ -172,8 +185,11 @@ func checkFacts(u *Unit, uf *UnitFacts) []Issue {
 			}
 		}
 	}
+	// verify loads every unit and also prints their warnings: keep this unit's.
 	for _, v := range uf.Verify {
-		add(SevWarn, "systemd-analyze: "+v)
+		if (u.Fragment != "" && strings.Contains(v, u.Fragment)) || strings.HasPrefix(v, u.Name+":") {
+			add(SevWarn, "systemd-analyze: "+v)
+		}
 	}
 	return is
 }

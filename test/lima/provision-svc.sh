@@ -69,7 +69,7 @@ svc svct-shadow.service    'ExecStart=/opt/svct/good.sh'
 
 systemctl daemon-reload
 for u in svct-good.timer svct-missing.service svct-baduser.service svct-crlf.service svct-noexec.service \
-         svct-loop.service svct-orphan.timer svct-perm.service svct-reload.service svct-badtimer.timer; do
+         svct-loop.service svct-orphan.timer svct-perm.service svct-reload.service svct-badtimer.timer svct-shadow.service; do
   systemctl enable "$u" >/dev/null 2>&1 || true
 done
 systemctl start svct-good.timer svct-badtimer.timer svct-loop.service svct-reload.service 2>/dev/null || true
