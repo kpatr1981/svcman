@@ -11,6 +11,12 @@ test:
 	go vet ./...
 	go test ./...
 
+install:
+	sh install.sh $(PREFIX)
+
+uninstall:
+	sh install.sh --uninstall $(PREFIX)
+
 itest: build
 	sh test/lima/itest.sh
 
@@ -23,4 +29,4 @@ release:
 	done
 	@cd dist && shasum -a 256 svcman-* > SHA256SUMS && cat SHA256SUMS
 
-.PHONY: build test itest release
+.PHONY: build test install uninstall itest release

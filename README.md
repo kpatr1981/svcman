@@ -186,6 +186,9 @@ You need [Go](https://go.dev/dl/) 1.26 or newer. There is no cgo.
 git clone https://github.com/kpatr1981/svcman.git
 cd svcman
 make build                     # ./svcman
+sh install.sh                  # build and install to ~/.local/bin (or: make install)
+sh install.sh /usr/local/bin   # another directory (sudo if it is not writable)
+sh install.sh --uninstall      # remove it again
 make test                      # go vet + unit tests
 make release                   # dist/ binaries for linux, macOS, windows (amd64/arm64) + SHA256SUMS
 ```
