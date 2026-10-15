@@ -554,9 +554,5 @@ func runInteractive(r Runner) error {
 	return nil
 }
 
-func (a *app) details()                   { a.status = "details: not built yet" }
-func (a *app) showJournal(u *Unit, n int) { a.status = "journal: not built yet" }
-func (a *app) showCat(u *Unit)            { a.status = "cat: not built yet" }
-func (a *app) help()                      { a.status = "help: not built yet" }
-func (a *app) editDropIn(u *Unit)         { a.status = "editor: not built yet" }
-func (a *app) save() bool                 { a.status = "save: not built yet"; return false }
+func (a *app) editDropIn(u *Unit) { a.status = "editor: not built yet" }
+func (a *app) save() bool         { a.status = "save: not built yet"; return false }
